@@ -6,50 +6,59 @@ export async function login(page: Page, username: string, password: string) {
   await page.click('[data-test="login-button"]');
 }
 
-export async function sortBy(page: Page, value: string) {
-  const dropdown = page.locator('[data-test="product-sort-container"]');
-  await dropdown.waitFor({ state: "visible" });
-  await dropdown.selectOption(value);
+async function selectSortOption(page: Page, value: string) {
+  const sortDropdown = page.locator('[data-test="product-sort-container"]');
+  await sortDropdown.waitFor({ state: "visible" });
+  await sortDropdown.selectOption(value);
+}
+
+async function getPrices(page: Page): Promise<number[]> {
+  const priceTexts = await page
+    .locator(".inventory_item_price")
+    .allTextContents();
+  return priceTexts.map((text) => parseFloat(text.replace("$", "")));
+}
+
+async function getProductNames(page: Page): Promise<string[]> {
+  return await page.locator(".inventory_item_name").allTextContents();
 }
 
 export async function sortProductsByPriceLowToHigh(
   page: Page
 ): Promise<number[]> {
-  await sortBy(page, "lohi");
-  const prices = await page.locator(".inventory_item_price").allTextContents();
-  return prices.map((price) => parseFloat(price.replace("$", "")));
+  await selectSortOption(page, "lohi");
+  return getPrices(page);
 }
 
 export async function sortProductsByPriceHighToLow(
   page: Page
 ): Promise<number[]> {
-  await sortBy(page, "hilo");
-  const prices = await page.locator(".inventory_item_price").allTextContents();
-  return prices.map((price) => parseFloat(price.replace("$", "")));
+  await selectSortOption(page, "hilo");
+  return getPrices(page);
 }
 
 export async function expectProductsSortedByPriceLowToHigh(page: Page) {
-  const priceNumbers = await sortProductsByPriceLowToHigh(page);
-  const sorted = [...priceNumbers].sort((a, b) => a - b);
-  expect(priceNumbers).toEqual(sorted);
+  const prices = await sortProductsByPriceLowToHigh(page);
+  const expected = [...prices].sort((a, b) => a - b);
+  expect(prices).toEqual(expected);
 }
 
 export async function expectProductsSortedByPriceHighToLow(page: Page) {
-  const priceNumbers = await sortProductsByPriceHighToLow(page);
-  const sorted = [...priceNumbers].sort((a, b) => b - a);
-  expect(priceNumbers).toEqual(sorted);
+  const prices = await sortProductsByPriceHighToLow(page);
+  const expected = [...prices].sort((a, b) => b - a);
+  expect(prices).toEqual(expected);
 }
 
 export async function expectProductsSortedByNameAZ(page: Page) {
-  await sortBy(page, "az");
-  const names = await page.locator(".inventory_item_name").allTextContents();
-  const sorted = [...names].sort();
-  expect(names).toEqual(sorted);
+  await selectSortOption(page, "az");
+  const names = await getProductNames(page);
+  const expected = [...names].sort();
+  expect(names).toEqual(expected);
 }
 
 export async function expectProductsSortedByNameZA(page: Page) {
-  await sortBy(page, "za");
-  const names = await page.locator(".inventory_item_name").allTextContents();
-  const sorted = [...names].sort((a, b) => b.localeCompare(a));
-  expect(names).toEqual(sorted);
+  await selectSortOption(page, "za");
+  const names = await getProductNames(page);
+  const expected = [...names].sort((a, b) => b.localeCompare(a));
+  expect(names).toEqual(expected);
 }
